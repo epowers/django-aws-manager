@@ -4,10 +4,16 @@ from aws_manager import views
 try:
     from django.conf.urls import url, patterns
 except ImportError:
-    # for Django version less then 1.4
-    from django.conf.urls.defaults import url, patterns
+    try:
+        # for Django version less then 1.4
+        from django.conf.urls.defaults import url, patterns
+    except:
+        # for Django versions greater than 1.8?
+        from django.conf.urls import url
+        def patterns(ignore, *args):
+            return list(args)
 
 urlpatterns = patterns('',
-    url(r'^get_rdp/(?P<public_dns>[\w|\W]+)/(?P<username>\w+)/$', 'aws_manager.views.get_rdp'),
+    url(r'^get_rdp/(?P<public_dns>[\w|\W]+)/(?P<username>\w+)/$', views.get_rdp),
 )
 
