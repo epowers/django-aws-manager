@@ -16,11 +16,11 @@ or for the latest from github:
 Quick start
 -----------
 
-1. Add "aws-manager" to your INSTALLED_APPS setting like this::
+1. Add "aws_manager" to your INSTALLED_APPS setting like this::
 
     INSTALLED_APPS = (
         ...
-        'aws-manager',
+        'aws_manager',
     )
 
 2. Include the aws_manager URLconf in your project urls.py like this::
