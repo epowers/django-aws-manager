@@ -1,5 +1,5 @@
 from django.db import models
-import boto.ec2
+import boto3
 
 
 class AWSNotFoundException(Exception):
@@ -21,33 +21,48 @@ class AWSServer(models.Model):
 
     def get_connection(self):
         """
-        Connects to AWS and returns and instance
+        Connects to AWS and returns an ec2 connection
         """
-        conn = boto.ec2.connect_to_region(self.aws_region, aws_access_key_id=self.aws_access_key, aws_secret_access_key=self.aws_secret_key)
-        all_instances = conn.get_all_instances(filters={'tag:Name': self.name})
+        conn = boto3.client('ec2', region_name=self.aws_region, aws_access_key_id=self.aws_access_key, aws_secret_access_key=self.aws_secret_key)
+        return conn
+
+    def describe_instance(self):
+        """
+        Connects to AWS and returns an instance description
+        """
+        conn = self.get_connection()
+        all_instances = conn.describe_instances(Filters=[{'Name': 'tag:Name', 'Values': [self.name]}])
         if not all_instances:
             raise AWSNotFoundException("AWS Instance not found, check settings.")
-        inst = all_instances[0].instances[0]
-        return inst
+        inst = all_instances['Reservations'][0]['Instances'][0]
+        return conn, inst
+
+    def get_instance_id(self):
+        """
+        Connects to AWS and returns an instance id
+        """
+        conn, inst = self.describe_instance()
+        inst_id = inst['InstanceId']
+        return conn, inst_id
 
     def start_server(self):
         """
         Sends a message to AWS to start the server
         """
-        inst = self.get_connection()
-        inst.start()
+        conn, inst_id = self.get_instance_id()
+        conn.start_instances(InstanceIds=[inst_id])
 
     def stop_server(self):
         """
         Sends a message to AWS to stop the server
         """
-        inst = self.get_connection()
-        inst.stop()
+        conn, inst_id = self.get_instance_id()
+        conn.stop_instances(InstanceIds=[inst_id])
 
     def get_server_state(self):
         """
         returns the state of the server (e.g., 'running', 'stopped')
         """
-        inst = self.get_connection()
-        return inst.state
+        _, inst = self.describe_instance()
+        return inst['State']['Name']
 

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib import messages
 
 from django.utils.html import format_html
-import boto.ec2
+import boto3
 
 class AWSServerAdmin(admin.ModelAdmin):
 
@@ -10,8 +10,6 @@ class AWSServerAdmin(admin.ModelAdmin):
 
     state = None
     public_dns_name = None
-    server_status_info = None
-    inst = None
 
     def get_inst_state(self, instance):
         return self.state
@@ -30,14 +28,30 @@ class AWSServerAdmin(admin.ModelAdmin):
     get_rdp_url.short_description  = "Remote Desktop File"
     get_rdp_url.allow_tags = True
 
+    def get_connection(self, server):
+        """
+        Connects to AWS and returns an ec2 connection
+        """
+        conn = boto3.client('ec2', region_name=server.aws_region, aws_access_key_id=server.aws_access_key, aws_secret_access_key=server.aws_secret_key)
+        return conn
+
+    def describe_instance(self, server):
+        """
+        Connects to AWS and returns an instance description
+        """
+        conn = self.get_connection(server)
+        all_instances = conn.describe_instances(Filters=[{'Name': 'tag:Name', 'Values': [server.name]}])
+        if not all_instances:
+            raise AWSNotFoundException("AWS Instance not found, check settings.")
+        inst = all_instances['Reservations'][0]['Instances'][0]
+        return inst
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         try:
             server = self.get_object(self, object_id)
-            conn = boto.ec2.connect_to_region(server.aws_region, aws_access_key_id=server.aws_access_key, aws_secret_access_key=server.aws_secret_key)
-            inst = conn.get_all_instances(filters={'tag:Name': server.name})[0].instances[0]
-            self.state = inst.state
-            self.public_dns_name = inst.public_dns_name
+            inst = self.describe_instance(server)
+            self.state = inst['State']['Name']
+            self.public_dns_name = inst['PublicDnsName']
             self.readonly_fields = (self.get_inst_state, self.get_public_dns_name, self.get_rdp_url)
         except:
             self.readonly_fields = ()
