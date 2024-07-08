@@ -19,49 +19,43 @@ class Command(BaseCommand):
     def handle(self, server_name=None, action=None,*args, **options):
         # make sure a server name is passed
         if not server_name:
-            print "Please specify a server name matching the EC2 name."
+            print("Please specify a server name matching the EC2 name.")
             return
 
         # made sure an action is passed
         if not action:
-            print "Please specify an action: 'start', 'stop', 'state', 'start-wkdays-only', 'stop-wkdays-only'."
+            print("Please specify an action: 'start', 'stop', 'state', 'start-wkdays-only', 'stop-wkdays-only'.")
             return
 
 
         # See if the server exists
         servers = AWSServer.objects.filter(name=server_name)
         if not servers:
-            print 'Server named %s not found.  Check admin settings.' % server_name
+            print('Server named ' + server_name + ' not found.  Check admin settings.')
             return
 
         server = servers[0]
 
         if action == 'start':
-            print 'starting ' + server_name
+            print('starting ' + server_name)
             server.start_server()
 
         elif action == 'stop':
-            print 'stopping ' + server_name
+            print('stopping ' + server_name)
             server.stop_server()
 
         elif action == 'start-wkdays-only':
             if self.is_weekday():
-                print 'starting ' + server_name
+                print('starting ' + server_name)
                 server.start_server()
 
         elif action == 'stop-wkdays-only':
             if self.is_weekday():
-                print 'stopping ' + server_name
+                print('stopping ' + server_name)
                 server.stop_server()
 
         elif action == 'state':
-            print server_name + ' state: ' + server.get_server_state()
+            print(server_name + ' state: ' + server.get_server_state())
 
         else:
-            print 'action not found'
-
-
-
-
-
-
+            print('action not found')
